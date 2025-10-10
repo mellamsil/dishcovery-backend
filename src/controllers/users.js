@@ -1,10 +1,7 @@
-const express = require("express");
-const router = express.Router();
-const User = require("../models/User");
-const authMiddleware = require("../middleware/authMiddleware");
+const User = require("../models/user");
 
 // Get current logged-in user
-router.get("/me", authMiddleware, (req, res) => {
+exports.getCurrentUser = (req, res) => {
   User.findById(req.userId)
     .select("-password")
     .then((user) => {
@@ -12,18 +9,18 @@ router.get("/me", authMiddleware, (req, res) => {
       res.json(user);
     })
     .catch((err) => res.status(500).json({ message: err.message }));
-});
+};
 
 // Get all users
-router.get("/", (req, res) => {
+exports.getAllUsers = (req, res) => {
   User.find()
     .select("-password")
     .then((users) => res.json(users))
     .catch((err) => res.status(500).json({ message: err.message }));
-});
+};
 
-// Get a user by ID
-router.get("/:id", (req, res) => {
+// Get user by ID
+exports.getUserById = (req, res) => {
   User.findById(req.params.id)
     .select("-password")
     .then((user) => {
@@ -31,10 +28,10 @@ router.get("/:id", (req, res) => {
       res.json(user);
     })
     .catch((err) => res.status(500).json({ message: err.message }));
-});
+};
 
-// Create a new user
-router.post("/", (req, res) => {
+// Create new user
+exports.createUser = (req, res) => {
   const {
     name,
     email,
@@ -59,10 +56,10 @@ router.post("/", (req, res) => {
     .save()
     .then((savedUser) => res.status(201).json(savedUser))
     .catch((err) => res.status(400).json({ message: err.message }));
-});
+};
 
-// Update a user
-router.put("/:id", (req, res) => {
+// Update user
+exports.updateUser = (req, res) => {
   User.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
@@ -74,10 +71,10 @@ router.put("/:id", (req, res) => {
       res.json(updatedUser);
     })
     .catch((err) => res.status(400).json({ message: err.message }));
-});
+};
 
-// Delete a user
-router.delete("/:id", (req, res) => {
+// Delete user
+exports.deleteUser = (req, res) => {
   User.findByIdAndDelete(req.params.id)
     .then((deletedUser) => {
       if (!deletedUser)
@@ -85,6 +82,4 @@ router.delete("/:id", (req, res) => {
       res.json({ message: "User deleted successfully" });
     })
     .catch((err) => res.status(500).json({ message: err.message }));
-});
-
-module.exports = router;
+};

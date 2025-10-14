@@ -25,7 +25,7 @@ const auth = (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload; // add user to request
+    req.user = payload;
     next();
   } catch (err) {
     next(new UnauthorizedError("Invalid token"));

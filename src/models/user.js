@@ -18,12 +18,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 8,
-      select: false, // don’t return hash by default
+      select: false,
     },
-    avatar: { type: String, default: "" },
-    favoriteCuisine: { type: String, default: "" },
-    dietaryPreferences: { type: String, default: "" },
-    preferences: { type: String, default: "" },
+    avatar: {
+      type: String,
+      default: "",
+    },
+    favoriteCuisine: {
+      type: String,
+      default: "",
+    },
+
+    // ✅ Updated fields below
+    dietaryPreferences: {
+      type: [String],
+      default: [],
+    },
+    preferences: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   {
     timestamps: true,

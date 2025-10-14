@@ -1,6 +1,6 @@
-const CookbookItem = require("../models/cookbooks"); // ensure correct file name
+const CookbookItem = require("../models/cookbook");
 const { SPOONACULAR_API_KEY } = require("../config/config");
-const fetch = require("node-fetch"); // Remove if Node 18+ with built-in fetch
+const fetch = require("node-fetch");
 
 // Search recipes from Spoonacular API
 exports.searchRecipes = (req, res) => {

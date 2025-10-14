@@ -1,22 +1,39 @@
 const fs = require("fs");
 const path = require("path");
 
-// Log requests
-// Using console as a simple logger
+// Create a log directory if it doesn't exist
+const logDir = path.join(__dirname, "../../logs");
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir);
+}
+
+const accessLogPath = path.join(logDir, "access.log");
+const errorLogPath = path.join(logDir, "error.log");
+
+// Simple logger object
 const logger = {
-  info: console.log,
-  error: console.error,
+  info: function (message) {
+    const logMessage = `[INFO] ${new Date().toISOString()} - ${message}\n`;
+    fs.appendFileSync(accessLogPath, logMessage);
+    console.log(logMessage.trim());
+  },
+  error: function (message) {
+    const logMessage = `[ERROR] ${new Date().toISOString()} - ${message}\n`;
+    fs.appendFileSync(errorLogPath, logMessage);
+    console.error(logMessage.trim());
+  },
 };
 
-// Log requests
-const requestLogger = (req, res, next) => {
-  logger.info(`${req.method} ${req.url}`);
+// Middleware to log requests
+function requestLogger(req, res, next) {
+  logger.info(req.method + " " + req.url);
   next();
-};
+}
 
-const errorLogger = (err, req, res, next) => {
+// Middleware to log errors
+function errorLogger(err, req, res, next) {
   logger.error(err.stack || err);
   next(err);
-};
+}
 
 module.exports = { logger, requestLogger, errorLogger };

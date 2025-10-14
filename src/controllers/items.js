@@ -1,5 +1,5 @@
 const { SPOONACULAR_API_KEY } = require("../config/config");
-const fetch = require("node-fetch"); // Remove if Node 18+ with built-in fetch
+const fetch = require("node-fetch");
 
 // GET /api/items - placeholder (optional)
 exports.getItems = (req, res) => {

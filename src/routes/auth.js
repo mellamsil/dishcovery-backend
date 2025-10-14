@@ -43,11 +43,15 @@ router.post("/signup", (req, res) => {
 
           user
             .save()
-            .then(() => {
-              const token = jwt.sign({ id: user._id }, JWT_SECRET, {
+            .then((savedUser) => {
+              const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
                 expiresIn: "1h",
               });
-              res.json({ user, token });
+
+              const userResponse = savedUser.toObject();
+              delete userResponse.password;
+
+              res.status(201).json({ user: userResponse, token });
             })
             .catch((err) =>
               res
@@ -76,23 +80,26 @@ router.post("/signin", (req, res) => {
     return res.status(400).json({ message: "Missing email or password" });
   }
 
+  // Include password explicitly
   User.findOne({ email })
+    .select("+password")
     .then((user) => {
-      if (!user) {
-        return res.status(400).json({ message: "User not found" });
-      }
+      if (!user) return res.status(400).json({ message: "User not found" });
 
       bcrypt
         .compare(password, user.password)
         .then((match) => {
-          if (!match) {
+          if (!match)
             return res.status(400).json({ message: "Incorrect password" });
-          }
 
           const token = jwt.sign({ id: user._id }, JWT_SECRET, {
             expiresIn: "1h",
           });
-          res.json({ user, token });
+
+          const userResponse = user.toObject();
+          delete userResponse.password;
+
+          res.json({ user: userResponse, token });
         })
         .catch((err) =>
           res

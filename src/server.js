@@ -6,9 +6,6 @@ const app = require("./app");
 const connectDB = require("./config/db");
 const Recipe = require("./models/recipe");
 
-// Import routes
-const recipesRoutes = require("./routes/recipes");
-
 // Connect to MongoDB
 connectDB();
 
@@ -56,9 +53,6 @@ db.once("open", function () {
       "Warning: SPOONACULAR_KEY not found in .env — Spoonacular API calls will fail."
     );
   }
-
-  // Register routes BEFORE starting server ===
-  app.use("/api/recipes", recipesRoutes);
 
   // Start HTTP server
   const PORT = process.env.PORT || 5000;

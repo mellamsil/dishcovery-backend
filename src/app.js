@@ -4,7 +4,7 @@ const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-const { requestLogger, errorLogger } = require("./config/logger");
+const { _requestLogger, errorLogger } = require("./config/logger");
 
 // Import routes & middleware
 const authRoutes = require("./routes/auth");

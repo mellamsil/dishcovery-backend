@@ -16,7 +16,7 @@ const authMiddleware = (req, res, next) => {
   });
 };
 
-const auth = (req, res, next) => {
+const _auth = (req, res, next) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
 
   if (!token) {
@@ -27,7 +27,7 @@ const auth = (req, res, next) => {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
     next();
-  } catch (err) {
+  } catch (_err) {
     next(new UnauthorizedError("Invalid token"));
   }
 };

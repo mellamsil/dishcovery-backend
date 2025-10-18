@@ -6,8 +6,8 @@ function errorHandler(err, req, res, next) {
     status === 500
       ? "Something went wrong on the server."
       : err && err.message
-      ? err.message
-      : "Unexpected error.";
+        ? err.message
+        : "Unexpected error.";
 
   // Log to console in all environments
   console.error("Error:", message);

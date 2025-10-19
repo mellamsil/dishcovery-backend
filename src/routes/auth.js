@@ -2,12 +2,13 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const { validateSignup, validateSignin } = require("../middlewares/validation");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_default_secret";
 
-// Signup
-router.post("/signup", (req, res) => {
+// Signup route
+router.post("/signup", validateSignup, (req, res) => {
   const {
     name,
     email,
@@ -19,7 +20,7 @@ router.post("/signup", (req, res) => {
   } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ message: "Missing field" });
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   User.findOne({ email })
@@ -28,90 +29,76 @@ router.post("/signup", (req, res) => {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      bcrypt
-        .hash(password, 10)
-        .then((hashedPassword) => {
-          const user = new User({
-            name,
-            email,
-            password: hashedPassword,
-            avatar,
-            favoriteCuisine,
-            dietaryPreferences,
-            preferences,
-          });
+      return bcrypt.hash(password, 10).then((hashedPassword) => {
+        const user = new User({
+          name,
+          email,
+          password: hashedPassword,
+          avatar,
+          favoriteCuisine,
+          dietaryPreferences,
+          preferences,
+        });
 
-          user
-            .save()
-            .then((savedUser) => {
-              const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
-                expiresIn: "1h",
-              });
-
-              const userResponse = savedUser.toObject();
-              delete userResponse.password;
-
-              res.status(201).json({ user: userResponse, token });
-            })
-            .catch((err) =>
-              res
-                .status(500)
-                .json({ message: "Failed to save user", error: err.message })
-            );
-        })
-        .catch((err) =>
-          res
-            .status(500)
-            .json({ message: "Failed to hash password", error: err.message })
-        );
+        return user.save();
+      });
     })
-    .catch((err) =>
-      res
-        .status(500)
-        .json({ message: "Error checking existing user", error: err.message })
-    );
+    .then((savedUser) => {
+      if (!savedUser) return; // handled above if user existed
+
+      const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
+        expiresIn: "1h",
+      });
+
+      const userResponse = savedUser.toObject();
+      delete userResponse.password;
+
+      res.status(201).json({ user: userResponse, token });
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message: "Error creating user",
+        error: err.message,
+      });
+    });
 });
 
-// Signin
-router.post("/signin", (req, res) => {
+// Signin route
+router.post("/signin", validateSignin, (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: "Missing email or password" });
   }
 
-  // Include password explicitly
   User.findOne({ email })
     .select("+password")
     .then((user) => {
-      if (!user) return res.status(400).json({ message: "User not found" });
+      if (!user) {
+        return res.status(400).json({ message: "User not found" });
+      }
 
-      bcrypt
-        .compare(password, user.password)
-        .then((match) => {
-          if (!match)
-            return res.status(400).json({ message: "Incorrect password" });
+      return bcrypt.compare(password, user.password).then((match) => {
+        if (!match) {
+          return res.status(400).json({ message: "Incorrect password" });
+        }
 
-          const token = jwt.sign({ id: user._id }, JWT_SECRET, {
-            expiresIn: "1h",
-          });
+        const token = jwt.sign({ id: user._id }, JWT_SECRET, {
+          expiresIn: "1h",
+        });
 
-          const userResponse = user.toObject();
-          delete userResponse.password;
+        const userResponse = user.toObject();
+        delete userResponse.password;
 
-          res.json({ user: userResponse, token });
-        })
-        .catch((err) =>
-          res
-            .status(500)
-            .json({ message: "Error comparing password", error: err.message })
-        );
+        res.json({ user: userResponse, token });
+      });
     })
-    .catch((err) =>
-      res
-        .status(500)
-        .json({ message: "Error finding user", error: err.message })
-    );
+    .catch((err) => {
+      res.status(500).json({
+        message: "Error signing in user",
+        error: err.message,
+      });
+    });
 });
 
 module.exports = router;

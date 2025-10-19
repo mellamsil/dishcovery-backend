@@ -5,6 +5,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const { _requestLogger, errorLogger } = require("./config/logger");
+const { errors: celebrateErrors } = require("celebrate"); // Celebrate error handler
 
 // Import routes & middleware
 const authRoutes = require("./routes/auth");
@@ -33,7 +34,7 @@ app.use(limiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", authMiddleware, userRoutes);
 app.use("/api/cookbooks", authMiddleware, cookbookRoutes);
-app.use("/api/items", itemRoutes);
+app.use("/api/items", authMiddleware, itemRoutes); // protect items routes
 
 // Recipes route (public)
 app.use(
@@ -78,7 +79,10 @@ if (app._router && app._router.stack) {
   console.log("No routes registered yet or app._router is undefined");
 }
 
-// Error handling
+// Celebrate validation error handler
+app.use(celebrateErrors());
+
+// Custom error logging and central error handler
 app.use(errorLogger);
 app.use(errorHandler);
 

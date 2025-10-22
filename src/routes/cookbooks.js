@@ -1,17 +1,17 @@
 const express = require("express");
-const authMiddleware = require("../middlewares/authMiddleware");
+const auth = require("../middlewares/auth");
 const cookbookController = require("../controllers/cookbookController");
 
 const router = express.Router();
 
-// Public Spoonacular routes
+// Public Spoonacular API routes
 router.get("/search", cookbookController.searchRecipes);
 router.get("/recipe/:id", cookbookController.getRecipeById);
 
-// Protected CRUD routes for user’s saved recipes
-router.get("/", authMiddleware, cookbookController.getUserCookbook);
-router.post("/", authMiddleware, cookbookController.addToCookbook);
-router.put("/:id", authMiddleware, cookbookController.updateCookbookItem);
-router.delete("/:id", authMiddleware, cookbookController.deleteCookbookItem);
+// Protected user cookbook routes
+router.get("/", auth, cookbookController.getUserCookbook);
+router.post("/", auth, cookbookController.addToCookbook);
+router.put("/:id", auth, cookbookController.updateCookbookItem);
+router.delete("/:id", auth, cookbookController.deleteCookbookItem);
 
 module.exports = router;

@@ -4,8 +4,8 @@ const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-const { _requestLogger, errorLogger } = require("./config/logger");
-const { errors: celebrateErrors } = require("celebrate"); // Celebrate error handler
+const { errorLogger } = require("./config/logger");
+const { errors: celebrateErrors } = require("celebrate");
 
 // Import routes & middleware
 const authRoutes = require("./routes/auth");
@@ -14,7 +14,7 @@ const cookbookRoutes = require("./routes/cookbooks");
 const itemRoutes = require("./routes/items");
 const recipeRoutes = require("./routes/recipes");
 const { errorHandler } = require("./middlewares/errorHandler");
-const authMiddleware = require("./middlewares/authMiddleware");
+const auth = require("./middlewares/auth");
 
 // Middleware
 app.use(express.json());
@@ -32,14 +32,14 @@ app.use(limiter);
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", authMiddleware, userRoutes);
-app.use("/api/cookbooks", authMiddleware, cookbookRoutes);
-app.use("/api/items", authMiddleware, itemRoutes); // protect items routes
+app.use("/api/users", auth, userRoutes);
+app.use("/api/cookbooks", cookbookRoutes);
+app.use("/api/items", itemRoutes);
 
 // Recipes route (public)
 app.use(
   "/api/recipes",
-  function (req, res, next) {
+  (req, res, next) => {
     res.set("Cache-Control", "no-store");
     next();
   },
@@ -47,37 +47,9 @@ app.use(
 );
 
 // Root / health check
-app.get("/", function (req, res) {
+app.get("/", (req, res) => {
   res.send("Welcome to Dishcovery API");
 });
-
-// DEBUG: List all registered routes
-if (app._router && app._router.stack) {
-  console.log("Registered routes:");
-  app._router.stack.forEach(function (middleware) {
-    if (middleware.route) {
-      const methods = Object.keys(middleware.route.methods)
-        .map(function (m) {
-          return m.toUpperCase();
-        })
-        .join(",");
-      console.log(methods, middleware.route.path);
-    } else if (middleware.name === "router" && middleware.handle.stack) {
-      middleware.handle.stack.forEach(function (handler) {
-        if (handler.route) {
-          const methods = Object.keys(handler.route.methods)
-            .map(function (m) {
-              return m.toUpperCase();
-            })
-            .join(",");
-          console.log(methods, handler.route.path);
-        }
-      });
-    }
-  });
-} else {
-  console.log("No routes registered yet or app._router is undefined");
-}
 
 // Celebrate validation error handler
 app.use(celebrateErrors());

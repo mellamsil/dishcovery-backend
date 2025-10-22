@@ -5,7 +5,7 @@ const validator = require("validator");
 
 // URL validator: requires protocol (http:// or https://)
 const validateURL = (value, helpers) => {
-  if (validator.isURL(value, { require_protocol: true })) {
+  if (value === "" || validator.isURL(value, { require_protocol: true })) {
     return value;
   }
   return helpers.error("string.uri");
@@ -20,7 +20,6 @@ const validateObjectId = (value, helpers) => {
 };
 
 // User signup validation
-
 const validateSignup = celebrate({
   [Segments.BODY]: Joi.object().keys({
     name: Joi.string().required().min(2).max(30).messages({
@@ -36,21 +35,19 @@ const validateSignup = celebrate({
       "string.empty": 'The "password" field must be filled in',
       "string.min": 'The "password" must be at least 8 characters long',
     }),
-    avatar: Joi.string().required().custom(validateURL).messages({
-      "string.empty": 'The "avatar" field must be filled in',
+    avatar: Joi.string().allow("").optional().custom(validateURL).messages({
       "string.uri": 'The "avatar" field must be a valid URL',
     }),
     favoriteCuisine: Joi.string().allow("").optional(),
     dietaryPreferences: Joi.string().allow("").optional(),
     preferences: Joi.string().allow("").optional(),
-    termsAgreement: Joi.boolean().valid(true).required().messages({
+    termsAgreement: Joi.boolean().optional().valid(true).messages({
       "any.only": "You must agree to the Terms of Service and Privacy Policy",
     }),
   }),
 });
 
 // User signin validation
-
 const validateSignin = celebrate({
   [Segments.BODY]: Joi.object().keys({
     email: Joi.string().required().email().messages({
@@ -64,23 +61,21 @@ const validateSignin = celebrate({
 });
 
 // Item creation validation
-
 const validateCreateItem = celebrate({
   [Segments.BODY]: Joi.object().keys({
-    name: Joi.string().required().min(2).max(30).messages({
-      "string.empty": 'The "name" field must be filled in',
-      "string.min": 'The minimum length of the "name" field is 2',
-      "string.max": 'The maximum length of the "name" field is 30',
+    title: Joi.string().required().min(2).max(50).messages({
+      "string.empty": 'The "title" field must be filled in',
+      "string.min": 'The minimum length of the "title" field is 2',
+      "string.max": 'The maximum length of the "title" field is 50',
     }),
-    imageUrl: Joi.string().required().custom(validateURL).messages({
-      "string.empty": 'The "imageUrl" field must be filled in',
+    description: Joi.string().allow("").optional(),
+    imageUrl: Joi.string().allow("").optional().custom(validateURL).messages({
       "string.uri": 'The "imageUrl" field must be a valid URL',
     }),
   }),
 });
 
 // Recipe creation validation
-
 const validateCreateRecipe = celebrate({
   [Segments.BODY]: Joi.object().keys({
     title: Joi.string().required().min(2).max(100).messages({
@@ -98,15 +93,13 @@ const validateCreateRecipe = celebrate({
       "string.empty": 'The "instructions" field must be filled in',
     }),
     notes: Joi.string().allow("").optional(),
-    imageUrl: Joi.string().required().custom(validateURL).messages({
-      "string.empty": 'The "imageUrl" field must be filled in',
+    imageUrl: Joi.string().allow("").optional().custom(validateURL).messages({
       "string.uri": 'The "imageUrl" field must be a valid URL',
     }),
   }),
 });
 
 // Item ID validation (route params)
-
 const validateItemId = celebrate({
   [Segments.PARAMS]: Joi.object().keys({
     itemId: Joi.string().required().custom(validateObjectId).messages({
@@ -118,17 +111,15 @@ const validateItemId = celebrate({
 });
 
 // Optional: Authorization header validation
-
 const validateAuthHeader = celebrate({
   [Segments.HEADERS]: Joi.object({
     authorization: Joi.string().required().messages({
       "string.empty": "Authorization header is required",
     }),
-  }).unknown(), // allow other headers
+  }).unknown(),
 });
 
 // Optional: Query validation (pagination)
-
 const validateQuery = celebrate({
   [Segments.QUERY]: Joi.object().keys({
     page: Joi.number().integer().min(1).messages({
@@ -142,8 +133,6 @@ const validateQuery = celebrate({
     }),
   }),
 });
-
-// Export all validators
 
 module.exports = {
   validateSignup,

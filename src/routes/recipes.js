@@ -1,12 +1,12 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const Recipe = require("../models/recipe");
-const authMiddleware = require("../middlewares/authMiddleware");
+const auth = require("../middlewares/auth");
 
 const router = express.Router();
 
 // Create a new user-added recipe
-router.post("/", authMiddleware, function (req, res) {
+router.post("/", auth, function (req, res) {
   const recipe = new Recipe({
     title: req.body.title || "Untitled Recipe",
     description: req.body.description || "No description provided.",
@@ -31,12 +31,11 @@ router.post("/", authMiddleware, function (req, res) {
     });
 });
 
-// Get all recipes (Spoonacular only for home or search)
+// Get all recipes from Spoonacular (home/search)
 router.get("/", function (req, res) {
   const q = req.query.q || "";
-  const apiKey = process.env.SPOONACULAR_KEY;
+  const apiKey = process.env.SPOONACULAR_API_KEY;
 
-  // If no API key, just return empty array (home shouldn't show MongoDB recipes)
   if (!apiKey) return res.json([]);
 
   let url =
@@ -50,7 +49,7 @@ router.get("/", function (req, res) {
       return response.json();
     })
     .then(function (data) {
-      var spoonacularRecipes = [];
+      let spoonacularRecipes = [];
 
       if (data && Array.isArray(data.results)) {
         spoonacularRecipes = data.results.map(function (r) {
@@ -71,8 +70,22 @@ router.get("/", function (req, res) {
 
       res.json(spoonacularRecipes);
     })
-    .catch(function () {
+    .catch(function (err) {
+      console.error("Error fetching Spoonacular recipes:", err.message);
       res.json([]);
+    });
+});
+
+// Get all recipes created by the logged-in user (for Dashboard)
+router.get("/saved", auth, function (req, res) {
+  Recipe.find({ author: req.user.id })
+    .sort({ createdAt: -1 })
+    .then(function (recipes) {
+      res.json(recipes);
+    })
+    .catch(function (err) {
+      console.error("Error fetching saved recipes:", err.message);
+      res.status(500).json([]);
     });
 });
 
@@ -81,9 +94,7 @@ router.get("/:id", function (req, res) {
   Recipe.findById(req.params.id)
     .populate("author", "name email")
     .then(function (recipe) {
-      if (!recipe) {
-        return res.status(404).json({ message: "Recipe not found" });
-      }
+      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
       res.json(recipe);
     })
     .catch(function (err) {
@@ -93,16 +104,12 @@ router.get("/:id", function (req, res) {
 });
 
 // Update recipe (author only)
-router.put("/:id", authMiddleware, function (req, res) {
+router.put("/:id", auth, function (req, res) {
   Recipe.findById(req.params.id)
     .then(function (recipe) {
-      if (!recipe) {
-        return res.status(404).json({ message: "Recipe not found" });
-      }
-
-      if (recipe.author.toString() !== req.user.id) {
+      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+      if (recipe.author.toString() !== req.user.id)
         return res.status(403).json({ message: "Not authorized" });
-      }
 
       recipe.title = req.body.title || recipe.title;
       recipe.description = req.body.description || recipe.description;
@@ -114,9 +121,7 @@ router.put("/:id", authMiddleware, function (req, res) {
       return recipe.save();
     })
     .then(function (updatedRecipe) {
-      if (updatedRecipe) {
-        res.json(updatedRecipe);
-      }
+      if (updatedRecipe) res.json(updatedRecipe);
     })
     .catch(function (err) {
       console.error("Error updating recipe:", err.message);
@@ -125,16 +130,12 @@ router.put("/:id", authMiddleware, function (req, res) {
 });
 
 // Delete recipe (author only)
-router.delete("/:id", authMiddleware, function (req, res) {
+router.delete("/:id", auth, function (req, res) {
   Recipe.findById(req.params.id)
     .then(function (recipe) {
-      if (!recipe) {
-        return res.status(404).json({ message: "Recipe not found" });
-      }
-
-      if (recipe.author.toString() !== req.user.id) {
+      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+      if (recipe.author.toString() !== req.user.id)
         return res.status(403).json({ message: "Not authorized" });
-      }
 
       return recipe.deleteOne();
     })

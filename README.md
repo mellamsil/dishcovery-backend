@@ -6,6 +6,8 @@ Dishcovery is a full-stack application that allows users to discover, save, and 
 
 Stage-2 focuses on the backend infrastructure, API routes, and proper configuration to ensure the server is functional, secure, and review-ready.
 
+**Note:** The frontend is still in progress. This submission includes the complete and fully functional backend.
+
 ## Tech Stack
 
 - Node.js — server runtime
@@ -16,15 +18,19 @@ Stage-2 focuses on the backend infrastructure, API routes, and proper configurat
 - Helmet — security headers
 - Cors — cross-origin resource sharing
 - Morgan — HTTP request logging
+- Node-Fetch — external API requests (Spoonacular)
 
 ## Installation & Setup
 
 1. Clone the repository and navigate to the backend folder.
 2. Install dependencies using npm install.
 3. Create a .env file based on .env.example and fill in configuration (PORT, MongoDB URI, JWT secret, Spoonacular API key).
-4. Start the server with npm start.
+4. Start the server:
 
-The server runs on the port specified in .env (default: 5000) and connects to MongoDB.
+   - npm run dev
+   - npm start.
+
+5. The server runs on the port specified in .env (default: 5000) and connects to MongoDB.
 
 ## Folder Structure
 
@@ -49,3 +55,10 @@ The server runs on the port specified in .env (default: 5000) and connects to Mo
 - ESLint enforces consistent JavaScript standards.
 - Prettier ensures uniform formatting.
 - Logs are stored locally in logs/ and ignored in Git.
+
+## Testing / Verification
+
+After starting the server:
+
+- curl http://localhost:5000/api/items
+- curl "http://localhost:5000/api/items/search?q=pasta"

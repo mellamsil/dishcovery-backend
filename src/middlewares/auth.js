@@ -1,35 +1,29 @@
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config/config");
-const { UnauthorizedError } = require("../utils/errors");
+const dotenv = require("dotenv");
+dotenv.config();
 
-const authMiddleware = (req, res, next) => {
+const JWT_SECRET = process.env.JWT_SECRET || "your_default_secret";
+
+// Unified authentication middleware
+const auth = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).send("No token provided");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization required" });
+  }
 
   const token = authHeader.split(" ")[1];
-  if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).send("Invalid token");
-    req.userId = decoded.id;
+  jwt.verify(token, JWT_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    // Attach user object to request (works whether token has id or _id)
+    req.user = { id: decoded.id || decoded._id };
+
     next();
   });
 };
 
-const _auth = (req, res, next) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-
-  if (!token) {
-    return next(new UnauthorizedError("Authorization required"));
-  }
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
-    next();
-  } catch (_err) {
-    next(new UnauthorizedError("Invalid token"));
-  }
-};
-
-module.exports = authMiddleware;
+module.exports = auth;

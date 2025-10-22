@@ -1,5 +1,4 @@
 require("dotenv").config();
-
 const http = require("http");
 const mongoose = require("mongoose");
 const app = require("./app");
@@ -11,16 +10,16 @@ connectDB();
 
 const db = mongoose.connection;
 
-db.on("error", function (err) {
-  console.error("MongoDB connection error:", err.message);
-});
+db.on("error", (err) =>
+  console.error("MongoDB connection error:", err.message)
+);
 
-db.once("open", function () {
+db.once("open", () => {
   console.log("MongoDB connected successfully");
 
-  // Check if we need to seed sample recipes
+  // Seed sample recipes only if database is empty
   Recipe.countDocuments({})
-    .then(function (count) {
+    .then((count) => {
       if (count === 0) {
         console.log("Seeding sample recipes...");
         return Recipe.create([
@@ -38,37 +37,30 @@ db.once("open", function () {
         ]);
       }
     })
-    .then(function (result) {
-      if (result) {
-        console.log("Sample recipes added to the database.");
-      }
+    .then((result) => {
+      if (result) console.log("Sample recipes added to the database.");
     })
-    .catch(function (err) {
-      console.error("Error counting or seeding recipes:", err.message);
-    });
+    .catch((err) =>
+      console.error("Error counting or seeding recipes:", err.message)
+    );
 
-  // Confirm Spoonacular API key is loaded
-  if (!process.env.SPOONACULAR_KEY) {
+  // Confirm Spoonacular API key presence
+  if (!process.env.SPOONACULAR_API_KEY) {
     console.warn(
-      "Warning: SPOONACULAR_KEY not found in .env — Spoonacular API calls will fail."
+      "Warning: SPOONACULAR_API_KEY not found in .env — Spoonacular API calls will fail."
     );
   }
 
-  // Start HTTP server
+  // Start server
   const PORT = process.env.PORT || 5000;
   const server = http.createServer(app);
 
-  server.listen(PORT, function () {
-    console.log("Server running on port " + PORT);
-  });
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-  // Handle server errors
-  server.on("error", function (err) {
+  server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
       console.error(
-        "Port " +
-          PORT +
-          " is already in use. Please free it or change PORT in your .env file."
+        `Port ${PORT} is already in use. Free it or change PORT in .env.`
       );
       process.exit(1);
     } else {

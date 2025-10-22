@@ -1,7 +1,6 @@
 const express = require("express");
 const itemsController = require("../controllers/items");
-const auth = require("../middlewares/auth"); // make sure you have auth middleware
-
+const auth = require("../middlewares/auth");
 const {
   validateCreateItem,
   validateItemId,
@@ -9,17 +8,17 @@ const {
 
 const router = express.Router();
 
-// GET all items (for the logged-in user)
+// Get all items for the logged-in user
 router.get("/", auth, itemsController.getItems);
 
-// POST create new item
+// Create a new item
 router.post("/", auth, validateCreateItem, itemsController.createItem);
 
-// DELETE an item by ID
+// Delete an item by ID
 router.delete("/:itemId", auth, validateItemId, itemsController.deleteItem);
 
-// Spoonacular API routes
+// Spoonacular recipe API routes (public)
 router.get("/search", itemsController.searchRecipes);
-router.get("/recipe/:id", itemsController.getRecipeById); // changed to /recipe/:id to avoid conflict with /:itemId
+router.get("/recipe/:id", itemsController.getRecipeById);
 
 module.exports = router;

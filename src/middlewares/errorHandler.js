@@ -1,13 +1,13 @@
 const { NODE_ENV } = require("../config/config");
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   var status = err && err.statusCode ? err.statusCode : 500;
   var message =
     status === 500
       ? "Something went wrong on the server."
       : err && err.message
-        ? err.message
-        : "Unexpected error.";
+      ? err.message
+      : "Unexpected error.";
 
   // Log to console in all environments
   console.error("Error:", message);

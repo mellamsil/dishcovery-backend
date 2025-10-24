@@ -1,8 +1,8 @@
-const AppError = require("./AppError");
-
-class BadRequestError extends AppError {
-  constructor(message = "Bad request") {
-    super(message, 400);
+class BadRequestError extends Error {
+  constructor(message) {
+    super(message || "Bad request");
+    this.name = "BadRequestError";
+    this.statusCode = 400;
   }
 }
 

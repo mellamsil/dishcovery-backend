@@ -1,27 +1,37 @@
 const { NODE_ENV } = require("../config/config");
+const { logger } = require("../config/logger");
 
-function errorHandler(err, req, res, _next) {
-  var status = err && err.statusCode ? err.statusCode : 500;
-  var message =
-    status === 500
-      ? "Something went wrong on the server."
-      : err && err.message
-      ? err.message
-      : "Unexpected error.";
+function errorHandler(err, req, res) {
+  const statusCode = err?.statusCode || 500;
+  const message =
+    statusCode === 500
+      ? "An internal server error occurred."
+      : err?.message || "Unexpected error.";
 
-  // Log to console in all environments
-  console.error("Error:", message);
-  if (NODE_ENV === "development" && err && err.stack) {
-    console.error("Stack trace:\n", err.stack);
+  // Log error to console in development
+  if (NODE_ENV === "development") {
+    console.error("Error:", message);
+    if (err?.stack) console.error("Stack trace:", err.stack);
   }
 
-  // Build response object manually (no spread syntax)
-  var errorResponse = { error: { message: message } };
-  if (NODE_ENV === "development" && err && err.stack) {
+  // Log error to file using logger
+  logger.error(
+    `${req.method} ${req.originalUrl} ${statusCode} - ${message}${
+      err?.stack ? `\n${err.stack}` : ""
+    }`
+  );
+
+  // Build error response
+  const errorResponse = { error: { message } };
+  if (NODE_ENV === "development" && err?.stack) {
     errorResponse.error.stack = err.stack;
   }
 
-  res.status(status).json(errorResponse);
+  // Send response
+  res.status(statusCode).json(errorResponse);
+
+  // Explicit return for consistent-return rule
+  return null;
 }
 
-module.exports = { errorHandler };
+module.exports = errorHandler;

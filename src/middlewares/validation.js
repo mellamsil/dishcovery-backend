@@ -5,7 +5,7 @@ const validator = require("validator");
 
 // URL validator: requires protocol (http:// or https://)
 const validateURL = (value, helpers) => {
-  if (value === "" || validator.isURL(value, { require_protocol: true })) {
+  if (validator.isURL(value, { require_protocol: true })) {
     return value;
   }
   return helpers.error("string.uri");
@@ -35,12 +35,13 @@ const validateSignup = celebrate({
       "string.empty": 'The "password" field must be filled in',
       "string.min": 'The "password" must be at least 8 characters long',
     }),
-    avatar: Joi.string().allow("").optional().custom(validateURL).messages({
+    avatar: Joi.string().required().custom(validateURL).messages({
+      "string.empty": 'The "avatar" field must be filled in',
       "string.uri": 'The "avatar" field must be a valid URL',
     }),
     favoriteCuisine: Joi.string().allow("").optional(),
-    dietaryPreferences: Joi.string().allow("").optional(),
-    preferences: Joi.string().allow("").optional(),
+    dietaryPreferences: Joi.array().items(Joi.string()).optional(),
+    preferences: Joi.object().optional(),
     termsAgreement: Joi.boolean().optional().valid(true).messages({
       "any.only": "You must agree to the Terms of Service and Privacy Policy",
     }),
@@ -110,7 +111,7 @@ const validateItemId = celebrate({
   }),
 });
 
-// Optional: Authorization header validation
+// Authorization header validation
 const validateAuthHeader = celebrate({
   [Segments.HEADERS]: Joi.object({
     authorization: Joi.string().required().messages({
@@ -119,7 +120,7 @@ const validateAuthHeader = celebrate({
   }).unknown(),
 });
 
-// Optional: Query validation (pagination)
+// Query validation (pagination)
 const validateQuery = celebrate({
   [Segments.QUERY]: Joi.object().keys({
     page: Joi.number().integer().min(1).messages({

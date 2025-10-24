@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
+      maxlength: 30,
     },
     email: {
       type: String,
@@ -22,14 +24,14 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
     favoriteCuisine: {
       type: String,
       default: "",
+      trim: true,
     },
-
-    // ✅ Updated fields below
     dietaryPreferences: {
       type: [String],
       default: [],
@@ -43,6 +45,13 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// toJSON method: remove password before sending user object to frontend
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
 // Prevent OverwriteModelError in dev with nodemon
 const User = mongoose.models.User || mongoose.model("User", userSchema);

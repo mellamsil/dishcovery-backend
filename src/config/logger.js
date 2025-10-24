@@ -1,39 +1,42 @@
 const fs = require("fs");
 const path = require("path");
+const winston = require("winston");
+const expressWinston = require("express-winston");
 
-// Create a log directory if it doesn't exist
-const logDir = path.join(__dirname, "../../logs");
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir);
+// Logs directory
+const logsDir = path.join(__dirname, "../../logs");
+
+// Ensure logs directory exists
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
 }
 
-const accessLogPath = path.join(logDir, "access.log");
-const errorLogPath = path.join(logDir, "error.log");
+// Common Winston log format
+const logFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.json()
+);
 
-// Simple logger object
-const logger = {
-  info: function (message) {
-    const logMessage = `[INFO] ${new Date().toISOString()} - ${message}\n`;
-    fs.appendFileSync(accessLogPath, logMessage);
-    console.log(logMessage.trim());
-  },
-  error: function (message) {
-    const logMessage = `[ERROR] ${new Date().toISOString()} - ${message}\n`;
-    fs.appendFileSync(errorLogPath, logMessage);
-    console.error(logMessage.trim());
-  },
-};
+// Request logger (logs all HTTP requests)
+const requestLogger = expressWinston.logger({
+  transports: [
+    new winston.transports.File({
+      filename: path.join(logsDir, "request.log"),
+    }),
+  ],
+  format: logFormat,
+  meta: true, // Include request metadata
+  msg: "HTTP {{req.method}} {{req.url}}",
+  expressFormat: true,
+  colorize: false,
+});
 
-// Middleware to log requests
-function requestLogger(req, res, next) {
-  logger.info(req.method + " " + req.url);
-  next();
-}
+// Error logger (logs all errors hitting Express middleware)
+const errorLogger = expressWinston.errorLogger({
+  transports: [
+    new winston.transports.File({ filename: path.join(logsDir, "error.log") }),
+  ],
+  format: logFormat,
+});
 
-// Middleware to log errors
-function errorLogger(err, req, res, next) {
-  logger.error(err.stack || err);
-  next(err);
-}
-
-module.exports = { logger, requestLogger, errorLogger };
+module.exports = { requestLogger, errorLogger };

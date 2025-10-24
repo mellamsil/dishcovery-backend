@@ -1,32 +1,39 @@
 const express = require("express");
-const app = express();
 const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-const { errorLogger } = require("./config/logger");
 const { errors: celebrateErrors } = require("celebrate");
+const { requestLogger, errorLogger } = require("./config/logger");
+const errorHandler = require("./middlewares/errorHandler");
+const auth = require("./middlewares/auth");
+const config = require("./config/config");
 
-// Import routes & middleware
+// Import routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const cookbookRoutes = require("./routes/cookbooks");
 const itemRoutes = require("./routes/items");
 const recipeRoutes = require("./routes/recipes");
-const { errorHandler } = require("./middlewares/errorHandler");
-const auth = require("./middlewares/auth");
 
-// Middleware
+const app = express();
+
+// Global Middleware
 app.use(express.json());
 app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 
-// Rate limiter
+// Request logger (logs every request)
+app.use(requestLogger);
+
+// Rate Limiter
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
+  windowMs: config.RATE_LIMIT_WINDOW_MS,
+  max: config.RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests from this IP, please try again later." },
 });
 app.use(limiter);
 
@@ -36,7 +43,7 @@ app.use("/api/users", auth, userRoutes);
 app.use("/api/cookbooks", cookbookRoutes);
 app.use("/api/items", itemRoutes);
 
-// Recipes route (public)
+// Public Recipes route
 app.use(
   "/api/recipes",
   (req, res, next) => {
@@ -46,16 +53,21 @@ app.use(
   recipeRoutes
 );
 
-// Root / health check
-app.get("/", (req, res) => {
-  res.send("Welcome to Dishcovery API");
-});
+// Health check
+app.get("/", (req, res) => res.send("Welcome to Dishcovery API"));
 
-// Celebrate validation error handler
+// Celebrate validation errors
 app.use(celebrateErrors());
 
-// Custom error logging and central error handler
+// Error logger (after routes and validation)
 app.use(errorLogger);
+
+// Unknown route handler (404)
+app.use((req, res) => {
+  res.status(404).json({ error: { message: "Requested resource not found." } });
+});
+
+// Centralized error handler
 app.use(errorHandler);
 
 module.exports = app;

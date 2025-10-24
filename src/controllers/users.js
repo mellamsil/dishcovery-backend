@@ -1,14 +1,24 @@
 const User = require("../models/user");
+const {
+  NotFoundError,
+  ConflictError,
+  InternalServerError,
+} = require("../utils/errors");
 
 // Get current logged-in user
 exports.getCurrentUser = (req, res) => {
   User.findById(req.userId)
     .select("-password")
     .then((user) => {
-      if (!user) return res.status(404).json({ message: "User not found" });
-      res.json(user);
+      if (!user) throw new NotFoundError("User not found");
+      return res.json(user);
     })
-    .catch((err) => res.status(500).json({ message: err.message }));
+    .catch((err) => {
+      const error = !err.statusCode
+        ? new InternalServerError(err.message)
+        : err;
+      return res.status(error.statusCode).json({ message: error.message });
+    });
 };
 
 // Get all users
@@ -16,7 +26,12 @@ exports.getAllUsers = (req, res) => {
   User.find()
     .select("-password")
     .then((users) => res.json(users))
-    .catch((err) => res.status(500).json({ message: err.message }));
+    .catch((err) => {
+      const error = !err.statusCode
+        ? new InternalServerError(err.message)
+        : err;
+      return res.status(error.statusCode).json({ message: error.message });
+    });
 };
 
 // Get user by ID
@@ -24,10 +39,15 @@ exports.getUserById = (req, res) => {
   User.findById(req.params.id)
     .select("-password")
     .then((user) => {
-      if (!user) return res.status(404).json({ message: "User not found" });
-      res.json(user);
+      if (!user) throw new NotFoundError("User not found");
+      return res.json(user);
     })
-    .catch((err) => res.status(500).json({ message: err.message }));
+    .catch((err) => {
+      const error = !err.statusCode
+        ? new InternalServerError(err.message)
+        : err;
+      return res.status(error.statusCode).json({ message: error.message });
+    });
 };
 
 // Create new user
@@ -42,20 +62,35 @@ exports.createUser = (req, res) => {
     preferences,
   } = req.body;
 
-  const newUser = new User({
-    name,
-    email,
-    password,
-    avatar,
-    favoriteCuisine,
-    dietaryPreferences,
-    preferences,
-  });
+  User.findOne({ email })
+    .then((existingUser) => {
+      if (existingUser) throw new ConflictError("Email already in use");
 
-  newUser
-    .save()
-    .then((savedUser) => res.status(201).json(savedUser))
-    .catch((err) => res.status(400).json({ message: err.message }));
+      const newUser = new User({
+        name,
+        email,
+        password,
+        avatar,
+        favoriteCuisine,
+        dietaryPreferences,
+        preferences,
+      });
+
+      return newUser.save();
+    })
+    .then((savedUser) => {
+      if (!savedUser) throw new InternalServerError("User not saved");
+
+      const userObject = savedUser.toObject();
+      delete userObject.password;
+      return res.status(201).json(userObject);
+    })
+    .catch((err) => {
+      const error = !err.statusCode
+        ? new InternalServerError(err.message)
+        : err;
+      return res.status(error.statusCode).json({ message: error.message });
+    });
 };
 
 // Update user
@@ -66,20 +101,28 @@ exports.updateUser = (req, res) => {
   })
     .select("-password")
     .then((updatedUser) => {
-      if (!updatedUser)
-        return res.status(404).json({ message: "User not found" });
-      res.json(updatedUser);
+      if (!updatedUser) throw new NotFoundError("User not found");
+      return res.json(updatedUser);
     })
-    .catch((err) => res.status(400).json({ message: err.message }));
+    .catch((err) => {
+      const error = !err.statusCode
+        ? new InternalServerError(err.message)
+        : err;
+      return res.status(error.statusCode).json({ message: error.message });
+    });
 };
 
 // Delete user
 exports.deleteUser = (req, res) => {
   User.findByIdAndDelete(req.params.id)
     .then((deletedUser) => {
-      if (!deletedUser)
-        return res.status(404).json({ message: "User not found" });
-      res.json({ message: "User deleted successfully" });
+      if (!deletedUser) throw new NotFoundError("User not found");
+      return res.json({ message: "User deleted successfully" });
     })
-    .catch((err) => res.status(500).json({ message: err.message }));
+    .catch((err) => {
+      const error = !err.statusCode
+        ? new InternalServerError(err.message)
+        : err;
+      return res.status(error.statusCode).json({ message: error.message });
+    });
 };

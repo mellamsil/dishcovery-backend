@@ -2,11 +2,16 @@ const express = require("express");
 const fetch = require("node-fetch");
 const Recipe = require("../models/recipe");
 const auth = require("../middlewares/auth");
+const {
+  NotFoundError,
+  ForbiddenError,
+  InternalServerError,
+} = require("../utils/errors");
 
 const router = express.Router();
 
 // Create a new user-added recipe
-router.post("/", auth, function (req, res) {
+router.post("/", auth, (req, res) => {
   const recipe = new Recipe({
     title: req.body.title || "Untitled Recipe",
     description: req.body.description || "No description provided.",
@@ -19,133 +24,117 @@ router.post("/", auth, function (req, res) {
 
   recipe
     .save()
-    .then(function (savedRecipe) {
-      res.status(201).json(savedRecipe);
-    })
-    .catch(function (err) {
-      console.error("Error creating recipe:", err.message);
-      res.status(500).json({
-        message: "Failed to create recipe",
-        error: err.message,
-      });
-    });
+    .then((savedRecipe) => res.status(201).json(savedRecipe))
+    .catch(() =>
+      res
+        .status(new InternalServerError("Failed to create recipe").statusCode)
+        .json({ message: "Failed to create recipe" })
+    );
 });
 
 // Get all recipes from Spoonacular (home/search)
-router.get("/", function (req, res) {
+router.get("/", (req, res) => {
   const q = req.query.q || "";
   const apiKey = process.env.SPOONACULAR_API_KEY;
 
   if (!apiKey) return res.json([]);
 
-  let url =
-    "https://api.spoonacular.com/recipes/complexSearch?apiKey=" +
-    apiKey +
-    "&number=30&addRecipeInformation=true";
-  if (q) url += "&query=" + encodeURIComponent(q);
+  const url = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${apiKey}&number=30&addRecipeInformation=true${
+    q ? `&query=${encodeURIComponent(q)}` : ""
+  }`;
 
-  fetch(url)
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (data) {
-      let spoonacularRecipes = [];
-
-      if (data && Array.isArray(data.results)) {
-        spoonacularRecipes = data.results.map(function (r) {
-          return {
-            _id: r.id,
-            title: r.title || "Untitled Recipe",
-            image:
-              r.image && r.image.trim() !== ""
-                ? r.image
-                : "https://via.placeholder.com/300x200?text=No+Image",
-            description: r.summary
-              ? r.summary.replace(/<[^>]*>?/gm, "")
-              : "No description available.",
-            author: null,
-          };
-        });
-      }
-
-      res.json(spoonacularRecipes);
-    })
-    .catch(function (err) {
-      console.error("Error fetching Spoonacular recipes:", err.message);
-      res.json([]);
-    });
+  return fetch(url)
+    .then((response) => response.json())
+    .then((data) =>
+      res.json(
+        Array.isArray(data.results)
+          ? data.results.map((r) => ({
+              _id: r.id,
+              title: r.title || "Untitled Recipe",
+              image:
+                r.image && r.image.trim() !== ""
+                  ? r.image
+                  : "https://via.placeholder.com/300x200?text=No+Image",
+              description: r.summary
+                ? r.summary.replace(/<[^>]*>?/gm, "")
+                : "No description available.",
+              author: null,
+            }))
+          : []
+      )
+    )
+    .catch(() => res.json([]));
 });
 
-// Get all recipes created by the logged-in user (for Dashboard)
-router.get("/saved", auth, function (req, res) {
+// Get all recipes created by the logged-in user (Dashboard)
+router.get("/saved", auth, (req, res) =>
   Recipe.find({ author: req.user.id })
     .sort({ createdAt: -1 })
-    .then(function (recipes) {
-      res.json(recipes);
-    })
-    .catch(function (err) {
-      console.error("Error fetching saved recipes:", err.message);
-      res.status(500).json([]);
-    });
-});
+    .then((recipes) => res.json(recipes))
+    .catch(() =>
+      res
+        .status(
+          new InternalServerError("Error fetching saved recipes").statusCode
+        )
+        .json({ message: "Error fetching saved recipes" })
+    )
+);
 
 // Get one recipe by ID (MongoDB only)
-router.get("/:id", function (req, res) {
+router.get("/:id", (req, res) =>
   Recipe.findById(req.params.id)
     .populate("author", "name email")
-    .then(function (recipe) {
-      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
-      res.json(recipe);
-    })
-    .catch(function (err) {
-      console.error("Error fetching recipe:", err.message);
-      res.json({});
-    });
-});
+    .then((recipe) =>
+      recipe
+        ? res.json(recipe)
+        : Promise.reject(new NotFoundError("Recipe not found"))
+    )
+    .catch((err) =>
+      res.status(err.statusCode || 500).json({ message: err.message })
+    )
+);
 
 // Update recipe (author only)
-router.put("/:id", auth, function (req, res) {
+router.put("/:id", auth, (req, res) =>
   Recipe.findById(req.params.id)
-    .then(function (recipe) {
-      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+    .then((recipe) => {
+      if (!recipe) throw new NotFoundError("Recipe not found");
       if (recipe.author.toString() !== req.user.id)
-        return res.status(403).json({ message: "Not authorized" });
+        throw new ForbiddenError("Not authorized");
 
-      recipe.title = req.body.title || recipe.title;
-      recipe.description = req.body.description || recipe.description;
-      recipe.image =
-        req.body.image && req.body.image.trim() !== ""
-          ? req.body.image
-          : recipe.image;
+      const updatedData = {
+        title: req.body.title || recipe.title,
+        description: req.body.description || recipe.description,
+        image:
+          req.body.image && req.body.image.trim() !== ""
+            ? req.body.image
+            : recipe.image,
+      };
 
-      return recipe.save();
+      return Recipe.findByIdAndUpdate(req.params.id, updatedData, {
+        new: true,
+      });
     })
-    .then(function (updatedRecipe) {
-      if (updatedRecipe) res.json(updatedRecipe);
-    })
-    .catch(function (err) {
-      console.error("Error updating recipe:", err.message);
-      res.json({});
-    });
-});
+    .then((updatedRecipe) => res.json(updatedRecipe))
+    .catch((err) =>
+      res.status(err.statusCode || 500).json({ message: err.message })
+    )
+);
 
 // Delete recipe (author only)
-router.delete("/:id", auth, function (req, res) {
+router.delete("/:id", auth, (req, res) =>
   Recipe.findById(req.params.id)
-    .then(function (recipe) {
-      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+    .then((recipe) => {
+      if (!recipe) throw new NotFoundError("Recipe not found");
       if (recipe.author.toString() !== req.user.id)
-        return res.status(403).json({ message: "Not authorized" });
+        throw new ForbiddenError("Not authorized");
 
       return recipe.deleteOne();
     })
-    .then(function () {
-      res.json({ message: "Recipe deleted successfully" });
-    })
-    .catch(function (err) {
-      console.error("Error deleting recipe:", err.message);
-      res.json({});
-    });
-});
+    .then(() => res.json({ message: "Recipe deleted successfully" }))
+    .catch((err) =>
+      res.status(err.statusCode || 500).json({ message: err.message })
+    )
+);
 
 module.exports = router;

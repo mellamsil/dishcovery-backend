@@ -8,25 +8,25 @@ function connectDB() {
 
   mongoose
     .connect(uri)
-    .then(function () {
+    .then(() => {
       console.log("MongoDB connected:", uri);
     })
-    .catch(function (error) {
+    .catch((error) => {
       console.error("MongoDB connection error:", error.message);
       process.exit(1);
     });
 
   // Handle MongoDB connection events
-  mongoose.connection.on("disconnected", function () {
+  mongoose.connection.on("disconnected", () => {
     console.warn("MongoDB disconnected");
   });
 
-  mongoose.connection.on("reconnected", function () {
+  mongoose.connection.on("reconnected", () => {
     console.log("MongoDB reconnected");
   });
 
   if (NODE_ENV !== "test") {
-    mongoose.connection.on("connected", function () {
+    mongoose.connection.on("connected", () => {
       console.log("Mongoose connection established.");
     });
   }

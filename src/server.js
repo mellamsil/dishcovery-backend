@@ -1,23 +1,24 @@
-require("dotenv").config();
 const http = require("http");
 const mongoose = require("mongoose");
 const app = require("./app");
 const connectDB = require("./config/db");
 const Recipe = require("./models/recipe");
+const { PORT, MONGO_URI, SPOONACULAR_API_KEY } = require("./config/config");
 
 // Connect to MongoDB
-connectDB();
+connectDB(MONGO_URI);
 
 const db = mongoose.connection;
 
-db.on("error", (err) =>
-  console.error("MongoDB connection error:", err.message)
-);
+db.on("error", (err) => {
+  console.error("MongoDB connection error:", err.message);
+  return null;
+});
 
 db.once("open", () => {
   console.log("MongoDB connected successfully");
 
-  // Seed sample recipes only if database is empty
+  // Seed sample recipes if database is empty
   Recipe.countDocuments({})
     .then((count) => {
       if (count === 0) {
@@ -36,6 +37,7 @@ db.once("open", () => {
           },
         ]);
       }
+      return null;
     })
     .then((result) => {
       if (result) console.log("Sample recipes added to the database.");
@@ -45,14 +47,13 @@ db.once("open", () => {
     );
 
   // Confirm Spoonacular API key presence
-  if (!process.env.SPOONACULAR_API_KEY) {
+  if (!SPOONACULAR_API_KEY) {
     console.warn(
       "Warning: SPOONACULAR_API_KEY not found in .env — Spoonacular API calls will fail."
     );
   }
 
   // Start server
-  const PORT = process.env.PORT || 5000;
   const server = http.createServer(app);
 
   server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
@@ -67,4 +68,6 @@ db.once("open", () => {
       throw err;
     }
   });
+
+  return null;
 });

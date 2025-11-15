@@ -9,16 +9,20 @@ exports.searchRecipes = function (req, res) {
     return res.status(400).json({ message: "Search query is required." });
   }
 
-  const url = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(
-    query
-  )}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
+  const url =
+    `https://api.spoonacular.com/recipes/complexSearch?query=${ 
+    encodeURIComponent(query) 
+    }&number=10&apiKey=${ 
+    SPOONACULAR_API_KEY}`;
 
   return fetch(url)
     .then((response) => response.json())
-    .then((data) => res.json(data.results || []))
+    .then((data) => {
+      res.json(data.results || []);
+    })
     .catch((err) => {
       console.error("Spoonacular API error:", err.message);
-      return res
+      res
         .status(500)
         .json({ message: "Error fetching recipes from Spoonacular API." });
     });
@@ -26,27 +30,29 @@ exports.searchRecipes = function (req, res) {
 
 // Get detailed recipe information by ID
 exports.getRecipeById = function (req, res) {
-  const { id } = req.params;
-  if (!id) {
-    return res.status(400).json({ message: "Recipe ID is required." });
-  }
+  const {id} = req.params;
+  if (!id) return res.status(400).json({ message: "Recipe ID is required." });
 
-  const url = `https://api.spoonacular.com/recipes/${id}/information?apiKey=${SPOONACULAR_API_KEY}`;
+  const url =
+    `https://api.spoonacular.com/recipes/${ 
+    id 
+    }/information?apiKey=${ 
+    SPOONACULAR_API_KEY}`;
 
   return fetch(url)
     .then((response) => response.json())
-    .then((data) => res.json(data))
+    .then((data) => {
+      res.json(data);
+    })
     .catch((err) => {
       console.error("Error fetching recipe details:", err.message);
-      return res
-        .status(500)
-        .json({ message: "Error fetching recipe details." });
+      res.status(500).json({ message: "Error fetching recipe details." });
     });
 };
 
 // Get all user's saved cookbook items
 exports.getUserCookbook = function (req, res) {
-  return CookbookItem.find({ userId: req.userId }, (err, items) => {
+  return CookbookItem.find({ userId: req.user.id }, (err, items) => {
     if (err) {
       console.error("Error fetching cookbook items:", err.message);
       return res
@@ -59,17 +65,18 @@ exports.getUserCookbook = function (req, res) {
 
 // Add a new cookbook item
 exports.addToCookbook = function (req, res) {
-  const { title, description, instructions, notes } = req.body;
-  if (!title) {
+  const recipe = req.body;
+  if (!recipe.title) {
     return res.status(400).json({ message: "Title is required." });
   }
 
   const newItem = new CookbookItem({
-    userId: req.userId,
-    title,
-    description,
-    instructions,
-    notes,
+    userId: req.user.id,
+    title: recipe.title,
+    description: recipe.description || "",
+    instructions: recipe.instructions || "",
+    notes: recipe.notes || "",
+    image: recipe.image,
   });
 
   return newItem.save((err, savedItem) => {
@@ -84,7 +91,7 @@ exports.addToCookbook = function (req, res) {
 // Delete a cookbook item
 exports.deleteCookbookItem = function (req, res) {
   return CookbookItem.findOneAndDelete(
-    { _id: req.params.id, userId: req.userId },
+    { _id: req.params.id, userId: req.user.id },
     (err, deletedItem) => {
       if (err) {
         console.error("Error deleting cookbook item:", err.message);
@@ -92,9 +99,8 @@ exports.deleteCookbookItem = function (req, res) {
           .status(500)
           .json({ message: "Error deleting cookbook item." });
       }
-      if (!deletedItem) {
+      if (!deletedItem)
         return res.status(404).json({ message: "Item not found." });
-      }
       return res.json({ message: "Cookbook item deleted successfully." });
     }
   );
@@ -102,11 +108,16 @@ exports.deleteCookbookItem = function (req, res) {
 
 // Update a cookbook item
 exports.updateCookbookItem = function (req, res) {
-  const { title, description, instructions, notes } = req.body;
+  const recipe = req.body;
 
   return CookbookItem.findOneAndUpdate(
-    { _id: req.params.id, userId: req.userId },
-    { title, description, instructions, notes },
+    { _id: req.params.id, userId: req.user.id },
+    {
+      title: recipe.title,
+      description: recipe.description,
+      instructions: recipe.instructions,
+      notes: recipe.notes,
+    },
     { new: true },
     (err, updatedItem) => {
       if (err) {
@@ -115,9 +126,8 @@ exports.updateCookbookItem = function (req, res) {
           .status(500)
           .json({ message: "Error updating cookbook item." });
       }
-      if (!updatedItem) {
+      if (!updatedItem)
         return res.status(404).json({ message: "Item not found." });
-      }
       return res.json(updatedItem);
     }
   );

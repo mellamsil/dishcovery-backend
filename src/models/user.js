@@ -40,13 +40,17 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// toJSON method: remove password before sending user object to frontend
+// Remove password before sending user object to frontend
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;

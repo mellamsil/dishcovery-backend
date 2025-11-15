@@ -8,12 +8,17 @@ const {
   BadRequestError,
   InternalServerError,
   NotFoundError,
+  ForbiddenError,
 } = require("../utils/errors");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_default_secret";
+const DEFAULT_AVATAR =
+  process.env.DEFAULT_AVATAR || "/src/assets/images/user-placeholder.png";
 
-// Signup route
+/**
+ * POST /auth/signup
+ */
 router.post("/signup", validateSignup, (req, res) => {
   const {
     name,
@@ -25,15 +30,16 @@ router.post("/signup", validateSignup, (req, res) => {
     preferences,
   } = req.body;
 
-  if (!email || !password || !avatar) {
-    const err = new BadRequestError("Email, password, and avatar are required");
+  if (!email || !password) {
+    const err = new BadRequestError("Email and password are required");
     return res.status(err.statusCode).json({ message: err.message });
   }
+
+  const diets = Array.isArray(dietaryPreferences) ? dietaryPreferences : [];
 
   return User.findOne({ email })
     .then((existingUser) => {
       if (existingUser) throw new ConflictError("User already exists");
-
       return bcrypt.hash(password, 10);
     })
     .then((hashedPassword) => {
@@ -44,10 +50,10 @@ router.post("/signup", validateSignup, (req, res) => {
         name,
         email,
         password: hashedPassword,
-        avatar,
-        favoriteCuisine,
-        dietaryPreferences,
-        preferences,
+        avatar: avatar?.trim() || DEFAULT_AVATAR,
+        favoriteCuisine: favoriteCuisine || "",
+        dietaryPreferences: diets,
+        preferences: preferences || {},
       });
 
       return user.save();
@@ -56,20 +62,23 @@ router.post("/signup", validateSignup, (req, res) => {
       if (!savedUser) throw new InternalServerError("User not saved");
 
       const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "7d",
       });
+
       const userResponse = savedUser.toObject();
       delete userResponse.password;
 
-      res.status(201).json({ user: userResponse, token });
+      return res.status(201).json({ user: userResponse, token });
     })
     .catch((err) => {
       const status = err.statusCode || 500;
-      res.status(status).json({ message: err.message });
+      return res.status(status).json({ message: err.message });
     });
 });
 
-// Signin route
+/**
+ * POST /auth/signin
+ */
 router.post("/signin", validateSignin, (req, res) => {
   const { email, password } = req.body;
 
@@ -81,23 +90,37 @@ router.post("/signin", validateSignin, (req, res) => {
   return User.findOne({ email })
     .select("+password")
     .then((user) => {
-      if (!user) throw new NotFoundError("User not found");
+      if (!user) {
+        const err = new NotFoundError("Email not registered");
+        return res.status(err.statusCode).json({ message: err.message });
+      }
+
+      if (user.isDeleted) {
+        const err = new ForbiddenError("This account has been deleted");
+        return res.status(err.statusCode).json({ message: err.message });
+      }
 
       return bcrypt.compare(password, user.password).then((match) => {
-        if (!match) throw new BadRequestError("Incorrect password");
+        if (!match) {
+          const err = new BadRequestError("Incorrect password");
+          return res.status(err.statusCode).json({ message: err.message });
+        }
 
         const token = jwt.sign({ id: user._id }, JWT_SECRET, {
           expiresIn: "1h",
         });
+
         const userResponse = user.toObject();
         delete userResponse.password;
 
-        res.json({ user: userResponse, token });
+        if (!userResponse.avatar) userResponse.avatar = DEFAULT_AVATAR;
+
+        return res.status(200).json({ user: userResponse, token });
       });
     })
     .catch((err) => {
       const status = err.statusCode || 500;
-      res.status(status).json({ message: err.message });
+      return res.status(status).json({ message: err.message });
     });
 });
 

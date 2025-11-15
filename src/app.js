@@ -46,10 +46,11 @@ app.use("/api/items", itemRoutes);
 // Public Recipes route
 app.use(
   "/api/recipes",
-  (req, res, next) => {
-    res.set("Cache-Control", "no-store");
-    next();
-  },
+  // (req, res, next) => {
+  //   res.set("Cache-Control", "no-store");
+  //   next();
+  // },
+  auth,
   recipeRoutes
 );
 

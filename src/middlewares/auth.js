@@ -1,29 +1,35 @@
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config/config");
+const { UnauthorizedError } = require("../utils/errors");
 
-// Unified authentication middleware
-const auth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+const JWT_SECRET = process.env.JWT_SECRET || "your_default_secret";
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Authorization required" });
+function auth(req, res, next) {
+  const header = req.headers.authorization;
+
+  if (!header || !header.startsWith("Bearer ")) {
+    const err = new UnauthorizedError(
+      "Authorization header missing or malformed"
+    );
+    return res.status(err.statusCode).json({ message: err.message });
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = header.slice(7).trim();
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (!decoded || !decoded.id) {
+      const e = new UnauthorizedError("Invalid token");
+      return res.status(e.statusCode).json({ message: e.message });
     }
 
-    // Attach user object to request
-    req.user = { id: decoded.id || decoded._id };
+    req.user = { id: decoded.id };
 
-    next();
-    return null;
-  });
-
-  return null;
-};
+    return next();
+  } catch (err) {
+    const e = new UnauthorizedError("Invalid token");
+    return res.status(e.statusCode).json({ message: e.message });
+  }
+}
 
 module.exports = auth;

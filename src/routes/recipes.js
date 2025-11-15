@@ -1,6 +1,7 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const Recipe = require("../models/recipe");
+
 const auth = require("../middlewares/auth");
 const {
   NotFoundError,
@@ -67,8 +68,9 @@ router.get("/", (req, res) => {
 });
 
 // Get all recipes created by the logged-in user (Dashboard)
-router.get("/saved", auth, (req, res) =>
-  Recipe.find({ author: req.user.id })
+router.get("/saved", auth, (req, res) => {
+  console.log(req.user);
+  return Recipe.find({ author: req.user.id })
     .sort({ createdAt: -1 })
     .then((recipes) => res.json(recipes))
     .catch(() =>
@@ -77,8 +79,8 @@ router.get("/saved", auth, (req, res) =>
           new InternalServerError("Error fetching saved recipes").statusCode
         )
         .json({ message: "Error fetching saved recipes" })
-    )
-);
+    );
+});
 
 // Get one recipe by ID (MongoDB only)
 router.get("/:id", (req, res) =>

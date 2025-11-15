@@ -8,6 +8,7 @@ const recipeSchema = new mongoose.Schema(
     instructions: { type: String, default: "" },
     cuisine: { type: String, default: "" },
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    image: { type: String },
   },
   {
     timestamps: true,

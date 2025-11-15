@@ -7,6 +7,9 @@ const cookbookSchema = new mongoose.Schema({
   instructions: String,
   notes: String,
   createdAt: { type: Date, default: Date.now },
+  image: String,
 });
 
-module.exports = mongoose.model("Cookbook", cookbookSchema);
+// Prevent OverwriteModelError during development with nodemon
+module.exports =
+  mongoose.models.Cookbook || mongoose.model("Cookbook", cookbookSchema);

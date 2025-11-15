@@ -5,7 +5,7 @@ const config = {
 
   MONGO_URI: process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dishcovery",
 
-  JWT_SECRET: process.env.JWT_SECRET || "super-secret-key",
+  // JWT_SECRET: process.env.JWT_SECRET || "super-secret-key",
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
 
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60000,

@@ -24,13 +24,20 @@ Stage-2 focuses on the backend infrastructure, API routes, and proper configurat
 
 1. Clone the repository and navigate to the backend folder.
 2. Install dependencies using npm install.
-3. Create a .env file based on .env.example and fill in configuration (PORT, MongoDB URI, JWT secret, Spoonacular API key).
-4. Start the server:
-
-   - npm run dev
-   - npm start.
-
-5. The server runs on the port specified in .env (default: 5000) and connects to MongoDB.
+3. Create a .env file based on .env.example and fill in configuration (PORT, MongoDB URI, JWT secret, Spoonacular API key):
+4. PORT=5000
+5. MONGO_URI=mongodb://127.0.0.1:27017/dishcovery
+6. JWT_SECRET=super-secret-key
+7. JWT_EXPIRES_IN=7d
+8. RATE_LIMIT_WINDOW_MS=60000
+9. RATE_LIMIT_MAX=100
+10. NODE_ENV=development
+11. SPOONACULAR_API_KEY=your_spoonacular_key
+    Note: Ensure .env is in .gitignore to prevent secrets from being committed.
+12. Start the server:
+13. npm run dev # development mode
+14. npm start # production mode
+15. The server runs on the port specified in .env (default: 5000) and connects to MongoDB.
 
 ## Folder Structure
 
@@ -48,7 +55,13 @@ Stage-2 focuses on the backend infrastructure, API routes, and proper configurat
 - User: Get current user details (protected)
 - Recipes: Fetch recipes (public), Add/Delete recipes (protected)
 - Items & Cookbooks: Full CRUD, protected routes
-  Protected routes require a valid JWT in the Authorization header.
+
+Protected routes require a valid JWT in the Authorization header.
+
+## Logging & Error Handling
+
+- Requests and errors are logged via express-winston into logs/ (ignored in Git).
+- Centralized error handler returns consistent JSON error responses.
 
 ## Code Quality & Linting
 
@@ -62,3 +75,7 @@ After starting the server:
 
 - curl http://localhost:5000/api/items
 - curl "http://localhost:5000/api/items/search?q=pasta"
+
+## Deployed Server
+
+- API Base URL: https://api.mydomain.com

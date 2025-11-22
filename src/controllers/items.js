@@ -1,95 +1,87 @@
 const fetch = require("node-fetch");
 const { SPOONACULAR_API_KEY } = require("../config/config");
 const Item = require("../models/item");
+const {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  InternalServerError,
+} = require("../utils/errors");
 
-// Local Cookbook/Recipe Management
+// Create item (POST /api/items)
+exports.createItem = async (req, res, next) => {
+  try {
+    const { title, description, imageUrl } = req.body;
+    const owner = req.user.id;
 
-// POST /api/items
-exports.createItem = (req, res) => {
-  const { title, description, imageUrl } = req.body;
-  const owner = req.userId;
+    if (!title) return next(new BadRequestError("Title is required."));
 
-  if (!title) return res.status(400).json({ message: "Title is required." });
-
-  return Item.create({ title, description, imageUrl, owner })
-    .then((newItem) => res.status(201).json(newItem))
-    .catch((err) => {
-      console.error("Error creating recipe item:", err.message);
-      return res
-        .status(500)
-        .json({ message: "Server error creating recipe item." });
-    });
+    const newItem = await Item.create({ title, description, imageUrl, owner });
+    return res.status(201).json(newItem);
+  } catch (err) {
+    return next(new InternalServerError("Server error creating recipe item."));
+  }
 };
 
-// DELETE /api/items/:itemId
-exports.deleteItem = (req, res) => {
-  const { itemId } = req.params;
+// DELETE item (DELETE /api/items/:itemId)
+exports.deleteItem = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const item = await Item.findById(itemId);
 
-  return Item.findById(itemId)
-    .then((item) => {
-      if (!item) return res.status(404).json({ message: "Item not found." });
-      if (!item.owner.equals(req.userId))
-        return res
-          .status(403)
-          .json({ message: "Not authorized to delete this item." });
-      return item
-        .deleteOne()
-        .then(() => res.json({ message: "Item deleted successfully." }));
-    })
-    .catch((err) => {
-      console.error("Error deleting recipe item:", err.message);
-      return res
-        .status(500)
-        .json({ message: "Server error deleting recipe item." });
-    });
+    if (!item) return next(new NotFoundError("Item not found."));
+    if (!item.owner.equals(req.user.id))
+      return next(new UnauthorizedError("Not authorized to delete this item."));
+
+    await item.deleteOne();
+    return res.json({ message: "Item deleted successfully." });
+  } catch (err) {
+    return next(new InternalServerError("Server error deleting recipe item."));
+  }
 };
 
-// GET /api/items
-exports.getItems = (req, res) =>
-  Item.find({ owner: req.userId })
-    .then((items) => res.status(200).json(items))
-    .catch((err) => {
-      console.error("Error fetching recipe items:", err.message);
-      return res.status(500).json({ message: "Error fetching recipe items." });
-    });
-
-// Spoonacular API Routes
-
-// GET /api/items/search?q=...
-exports.searchRecipes = (req, res) => {
-  const query = req.query.q;
-  if (!query)
-    return res.status(400).json({ message: "Search query is required." });
-
-  const url = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(
-    query
-  )}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
-
-  return fetch(url)
-    .then((response) => response.json())
-    .then((data) => res.json(data.results || []))
-    .catch((err) => {
-      console.error("Spoonacular API error:", err.message);
-      return res
-        .status(500)
-        .json({ message: "Error fetching recipes from Spoonacular API." });
-    });
+// GET all items for user (GET /api/items)
+exports.getItems = async (req, res, next) => {
+  try {
+    const items = await Item.find({ owner: req.user.id });
+    return res.json(items);
+  } catch (err) {
+    return next(new InternalServerError("Error fetching recipe items."));
+  }
 };
 
-// GET /api/items/:id
-exports.getRecipeById = (req, res) => {
-  const { id } = req.params;
-  if (!id) return res.status(400).json({ message: "Recipe ID is required." });
+// Search recipes from Spoonacular (GET /api/items/search?q=...)
+exports.searchRecipes = async (req, res, next) => {
+  try {
+    const query = req.query.q;
+    if (!query) return next(new BadRequestError("Search query is required."));
 
-  const url = `https://api.spoonacular.com/recipes/${id}/information?apiKey=${SPOONACULAR_API_KEY}`;
+    const url = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(
+      query
+    )}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
 
-  return fetch(url)
-    .then((response) => response.json())
-    .then((data) => res.json(data))
-    .catch((err) => {
-      console.error("Error fetching recipe details:", err.message);
-      return res
-        .status(500)
-        .json({ message: "Error fetching recipe details." });
-    });
+    const response = await fetch(url);
+    const data = await response.json();
+    return res.json(data.results || []);
+  } catch (err) {
+    return next(
+      new InternalServerError("Error fetching recipes from Spoonacular API.")
+    );
+  }
+};
+
+// GET recipe details by ID (GET /api/items/:id)
+exports.getRecipeById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) return next(new BadRequestError("Recipe ID is required."));
+
+    const url = `https://api.spoonacular.com/recipes/${id}/information?apiKey=${SPOONACULAR_API_KEY}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+    return res.json(data);
+  } catch (err) {
+    return next(new InternalServerError("Error fetching recipe details."));
+  }
 };

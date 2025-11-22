@@ -3,32 +3,27 @@ const { UnauthorizedError } = require("../utils/errors");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_default_secret";
 
-function auth(req, res, next) {
-  const header = req.headers.authorization;
-
-  if (!header || !header.startsWith("Bearer ")) {
-    const err = new UnauthorizedError(
-      "Authorization header missing or malformed"
-    );
-    return res.status(err.statusCode).json({ message: err.message });
-  }
-
-  const token = header.slice(7).trim();
-
+async function auth(req, res, next) {
   try {
+    const header = req.headers.authorization;
+
+    if (!header || !header.startsWith("Bearer ")) {
+      return next(
+        new UnauthorizedError("Authorization header missing or malformed")
+      );
+    }
+
+    const token = header.slice(7).trim();
     const decoded = jwt.verify(token, JWT_SECRET);
 
     if (!decoded || !decoded.id) {
-      const e = new UnauthorizedError("Invalid token");
-      return res.status(e.statusCode).json({ message: e.message });
+      return next(new UnauthorizedError("Invalid token"));
     }
 
     req.user = { id: decoded.id };
-
     return next();
   } catch (err) {
-    const e = new UnauthorizedError("Invalid token");
-    return res.status(e.statusCode).json({ message: e.message });
+    return next(new UnauthorizedError("Invalid token"));
   }
 }
 

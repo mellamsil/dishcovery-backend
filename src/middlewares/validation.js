@@ -5,6 +5,7 @@ const validator = require("validator");
 
 // URL validator: requires protocol (http:// or https://)
 const validateURL = (value, helpers) => {
+  if (!value) return value; // Allow empty string or undefined
   if (validator.isURL(value, { require_protocol: true })) {
     return value;
   }
@@ -19,7 +20,7 @@ const validateObjectId = (value, helpers) => {
   return helpers.error("any.custom");
 };
 
-// User signup validation
+// USER SIGNUP VALIDATION (fixed avatar)
 const validateSignup = celebrate({
   [Segments.BODY]: Joi.object().keys({
     name: Joi.string().required().min(2).max(30).messages({
@@ -35,13 +36,16 @@ const validateSignup = celebrate({
       "string.empty": 'The "password" field must be filled in',
       "string.min": 'The "password" must be at least 8 characters long',
     }),
-    avatar: Joi.string().required().custom(validateURL).messages({
-      "string.empty": 'The "avatar" field must be filled in',
+
+    // FIXED — avatar is optional & can be empty
+    avatar: Joi.string().optional().allow("").custom(validateURL).messages({
       "string.uri": 'The "avatar" field must be a valid URL',
     }),
+
     favoriteCuisine: Joi.string().allow("").optional(),
     dietaryPreferences: Joi.array().items(Joi.string()).optional(),
     preferences: Joi.object().optional(),
+
     termsAgreement: Joi.boolean().optional().valid(true).messages({
       "any.only": "You must agree to the Terms of Service and Privacy Policy",
     }),
@@ -70,7 +74,7 @@ const validateCreateItem = celebrate({
       "string.max": 'The maximum length of the "title" field is 50',
     }),
     description: Joi.string().allow("").optional(),
-    imageUrl: Joi.string().allow("").optional().custom(validateURL).messages({
+    imageUrl: Joi.string().optional().allow("").custom(validateURL).messages({
       "string.uri": 'The "imageUrl" field must be a valid URL',
     }),
   }),
@@ -94,7 +98,7 @@ const validateCreateRecipe = celebrate({
       "string.empty": 'The "instructions" field must be filled in',
     }),
     notes: Joi.string().allow("").optional(),
-    imageUrl: Joi.string().allow("").optional().custom(validateURL).messages({
+    imageUrl: Joi.string().optional().allow("").custom(validateURL).messages({
       "string.uri": 'The "imageUrl" field must be a valid URL',
     }),
   }),

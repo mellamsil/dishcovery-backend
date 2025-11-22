@@ -17,6 +17,21 @@ const logFormat = winston.format.combine(
   winston.format.json()
 );
 
+// Standalone logger for app errors
+const logger = winston.createLogger({
+  level: "info",
+  format: logFormat,
+  transports: [
+    new winston.transports.File({
+      filename: path.join(logsDir, "error.log"),
+      level: "error",
+    }),
+    new winston.transports.File({
+      filename: path.join(logsDir, "combined.log"),
+    }),
+  ],
+});
+
 // Request logger (logs all HTTP requests)
 const requestLogger = expressWinston.logger({
   transports: [
@@ -25,7 +40,7 @@ const requestLogger = expressWinston.logger({
     }),
   ],
   format: logFormat,
-  meta: true, // Include request metadata
+  meta: true,
   msg: "HTTP {{req.method}} {{req.url}}",
   expressFormat: true,
   colorize: false,
@@ -39,4 +54,4 @@ const errorLogger = expressWinston.errorLogger({
   format: logFormat,
 });
 
-module.exports = { requestLogger, errorLogger };
+module.exports = { logger, requestLogger, errorLogger };

@@ -1,134 +1,120 @@
 const fetch = require("node-fetch");
 const CookbookItem = require("../models/cookbook");
 const { SPOONACULAR_API_KEY } = require("../config/config");
+const {
+  BadRequestError,
+  NotFoundError,
+  InternalServerError,
+} = require("../utils/errors");
 
-// Search recipes from Spoonacular API
-exports.searchRecipes = function (req, res) {
-  const query = req.query.q;
-  if (!query) {
-    return res.status(400).json({ message: "Search query is required." });
+// SEARCH RECIPES FROM SPOONACULAR
+exports.searchRecipes = async (req, res, next) => {
+  try {
+    const query = req.query.q;
+    if (!query) return next(new BadRequestError("Search query is required."));
+
+    const url = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(
+      query
+    )}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return res.json(data.results || []);
+  } catch (err) {
+    return next(
+      new InternalServerError("Error fetching recipes from Spoonacular.")
+    );
   }
-
-  const url =
-    `https://api.spoonacular.com/recipes/complexSearch?query=${ 
-    encodeURIComponent(query) 
-    }&number=10&apiKey=${ 
-    SPOONACULAR_API_KEY}`;
-
-  return fetch(url)
-    .then((response) => response.json())
-    .then((data) => {
-      res.json(data.results || []);
-    })
-    .catch((err) => {
-      console.error("Spoonacular API error:", err.message);
-      res
-        .status(500)
-        .json({ message: "Error fetching recipes from Spoonacular API." });
-    });
 };
 
-// Get detailed recipe information by ID
-exports.getRecipeById = function (req, res) {
-  const {id} = req.params;
-  if (!id) return res.status(400).json({ message: "Recipe ID is required." });
+// GET RECIPE DETAILS BY ID
+exports.getRecipeById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) return next(new BadRequestError("Recipe ID is required."));
 
-  const url =
-    `https://api.spoonacular.com/recipes/${ 
-    id 
-    }/information?apiKey=${ 
-    SPOONACULAR_API_KEY}`;
+    const url = `https://api.spoonacular.com/recipes/${id}/information?apiKey=${SPOONACULAR_API_KEY}`;
 
-  return fetch(url)
-    .then((response) => response.json())
-    .then((data) => {
-      res.json(data);
-    })
-    .catch((err) => {
-      console.error("Error fetching recipe details:", err.message);
-      res.status(500).json({ message: "Error fetching recipe details." });
-    });
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return res.json(data);
+  } catch (err) {
+    return next(new InternalServerError("Error fetching recipe details."));
+  }
 };
 
-// Get all user's saved cookbook items
-exports.getUserCookbook = function (req, res) {
-  return CookbookItem.find({ userId: req.user.id }, (err, items) => {
-    if (err) {
-      console.error("Error fetching cookbook items:", err.message);
-      return res
-        .status(500)
-        .json({ message: "Error fetching cookbook items." });
-    }
+// GET ALL USER'S COOKBOOK ITEMS
+exports.getUserCookbook = async (req, res, next) => {
+  try {
+    const items = await CookbookItem.find({ userId: req.user.id });
     return res.json(items);
-  });
-};
-
-// Add a new cookbook item
-exports.addToCookbook = function (req, res) {
-  const recipe = req.body;
-  if (!recipe.title) {
-    return res.status(400).json({ message: "Title is required." });
+  } catch (err) {
+    return next(new InternalServerError("Error fetching cookbook items."));
   }
-
-  const newItem = new CookbookItem({
-    userId: req.user.id,
-    title: recipe.title,
-    description: recipe.description || "",
-    instructions: recipe.instructions || "",
-    notes: recipe.notes || "",
-    image: recipe.image,
-  });
-
-  return newItem.save((err, savedItem) => {
-    if (err) {
-      console.error("Error saving cookbook item:", err.message);
-      return res.status(500).json({ message: "Error saving cookbook item." });
-    }
-    return res.status(201).json(savedItem);
-  });
 };
 
-// Delete a cookbook item
-exports.deleteCookbookItem = function (req, res) {
-  return CookbookItem.findOneAndDelete(
-    { _id: req.params.id, userId: req.user.id },
-    (err, deletedItem) => {
-      if (err) {
-        console.error("Error deleting cookbook item:", err.message);
-        return res
-          .status(500)
-          .json({ message: "Error deleting cookbook item." });
-      }
-      if (!deletedItem)
-        return res.status(404).json({ message: "Item not found." });
-      return res.json({ message: "Cookbook item deleted successfully." });
+// ADD NEW ITEM TO COOKBOOK
+exports.addToCookbook = async (req, res, next) => {
+  try {
+    const recipe = req.body;
+
+    if (!recipe.title) {
+      return next(new BadRequestError("Title is required."));
     }
-  );
-};
 
-// Update a cookbook item
-exports.updateCookbookItem = function (req, res) {
-  const recipe = req.body;
-
-  return CookbookItem.findOneAndUpdate(
-    { _id: req.params.id, userId: req.user.id },
-    {
+    const newItem = await CookbookItem.create({
+      userId: req.user.id,
       title: recipe.title,
-      description: recipe.description,
-      instructions: recipe.instructions,
-      notes: recipe.notes,
-    },
-    { new: true },
-    (err, updatedItem) => {
-      if (err) {
-        console.error("Error updating cookbook item:", err.message);
-        return res
-          .status(500)
-          .json({ message: "Error updating cookbook item." });
-      }
-      if (!updatedItem)
-        return res.status(404).json({ message: "Item not found." });
-      return res.json(updatedItem);
-    }
-  );
+      description: recipe.description || "",
+      instructions: recipe.instructions || "",
+      notes: recipe.notes || "",
+      image: recipe.image || "",
+    });
+
+    return res.status(201).json(newItem);
+  } catch (err) {
+    return next(new InternalServerError("Error saving cookbook item."));
+  }
+};
+
+// DELETE COOKBOOK ITEM
+exports.deleteCookbookItem = async (req, res, next) => {
+  try {
+    const deletedItem = await CookbookItem.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!deletedItem) return next(new NotFoundError("Item not found."));
+
+    return res.json({ message: "Cookbook item deleted successfully." });
+  } catch (err) {
+    return next(new InternalServerError("Error deleting cookbook item."));
+  }
+};
+
+// UPDATE COOKBOOK ITEM
+exports.updateCookbookItem = async (req, res, next) => {
+  try {
+    const recipe = req.body;
+
+    const updatedItem = await CookbookItem.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      {
+        title: recipe.title,
+        description: recipe.description,
+        instructions: recipe.instructions,
+        notes: recipe.notes,
+      },
+      { new: true }
+    );
+
+    if (!updatedItem) return next(new NotFoundError("Item not found."));
+
+    return res.json(updatedItem);
+  } catch (err) {
+    return next(new InternalServerError("Error updating cookbook item."));
+  }
 };

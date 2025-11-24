@@ -1,6 +1,7 @@
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
+require("dotenv").config();
 const morgan = require("morgan");
 const { errors: celebrateErrors } = require("celebrate");
 const limiter = require("./middlewares/limiter");

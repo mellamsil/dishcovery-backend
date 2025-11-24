@@ -1,24 +1,55 @@
 # Dishcovery Backend
 
+A secure and scalable RESTful API built with Node.js, Express, and MongoDB to power the Dishcovery platform. It handles user authentication, recipe and item management, data storage, and external API integration, serving as the core of the full-stack application.
+
 ## Project Overview
 
-Dishcovery is a full-stack application that allows users to discover, save, and manage recipes, cookbooks, and food items. This backend is built with Node.js, Express, and MongoDB, and provides a RESTful API to serve the frontend application.
+Dishcovery is a full-stack application that allows users to discover, save, and manage recipes, cookbooks, and food items.  
+The backend is built using **Node.js, Express, and MongoDB** and provides a fully functional **RESTful API** to support the frontend.
 
-Stage-2 focuses on the backend infrastructure, API routes, and proper configuration to ensure the server is functional, secure, and review-ready.
+This backend includes:
 
-**Note:** The frontend is still in progress. This submission includes the complete and fully functional backend.
+- Authentication (JWT-based)
+- CRUD operations for users, items, and recipes
+- API integrations (Spoonacular)
+- Secure deployment on HTTPS using SSL (Certbot)
+- Server process management via PM2
 
 ## Tech Stack
 
-- Node.js — server runtime
-- Express.js — web framework
-- MongoDB + Mongoose — database and ORM
-- JWT — authentication
-- ESLint & Prettier — code quality and formatting
-- Helmet — security headers
-- Cors — cross-origin resource sharing
-- Morgan — HTTP request logging
-- Node-Fetch — external API requests (Spoonacular)
+| Category        | Tools / Technologies             |
+| --------------- | -------------------------------- |
+| Runtime         | Node.js                          |
+| Framework       | Express.js                       |
+| Database & ORM  | MongoDB + Mongoose               |
+| Auth & Security | JWT, Helmet, CORS, Rate Limiting |
+| Logging         | Morgan, Winston                  |
+| Code Quality    | ESLint, Prettier                 |
+| Deployment      | Nginx, PM2, Certbot SSL          |
+| External API    | Spoonacular (node-fetch)         |
+
+## Deployment URLs (Production)
+
+### Backend API Base URL:
+
+https://api.dishcovery.jumpingcrab.com
+
+### Frontend URL:
+
+https://dishcovery.jumpingcrab.com
+
+### Redirect URLs:
+
+https://dishcovery.jumpingcrab.com/profile  
+https://api.dishcovery.jumpingcrab.com/api/signin  
+https://api.dishcovery.jumpingcrab.com/api/signup
+
+### Example Protected API Endpoint:
+
+https://api.dishcovery.jumpingcrab.com/api/items
+(Requires Authorization: Bearer <JWT>)
+
+(All domains are HTTPS-enabled using SSL/TLS and Cerbot)
 
 ## Installation & Setup
 
@@ -60,8 +91,9 @@ Protected routes require a valid JWT in the Authorization header.
 
 ## Logging & Error Handling
 
-- Requests and errors are logged via express-winston into logs/ (ignored in Git).
-- Centralized error handler returns consistent JSON error responses.
+- Express-winston logs errors and API requests to /logs/
+- Centralized error handler returns consistent JSON responses
+- Debug logs excluded from Git tracking
 
 ## Code Quality & Linting
 
@@ -71,11 +103,13 @@ Protected routes require a valid JWT in the Authorization header.
 
 ## Testing / Verification
 
-After starting the server:
+### Sign in (get JWT)
 
-- curl http://localhost:5000/api/items
-- curl "http://localhost:5000/api/items/search?q=pasta"
+```bash
+curl -X POST http://localhost:5000/api/auth/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"your_password"}'
+```
 
-## Deployed Server
-
-- API Base URL: https://api.mydomain.com
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+http://localhost:5000/api/items

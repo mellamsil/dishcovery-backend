@@ -12,52 +12,46 @@ const db = mongoose.connection;
 
 db.on("error", (err) => {
   console.error("MongoDB connection error:", err.message);
-  return null;
 });
 
-db.once("open", () => {
+db.once("open", async () => {
   console.log("MongoDB connected successfully");
 
-  // Seed sample recipes if database is empty
-  Recipe.countDocuments({})
-    .then((count) => {
-      if (count === 0) {
-        console.log("Seeding sample recipes...");
-        return Recipe.create([
-          {
-            title: "Spaghetti Carbonara",
-            description:
-              "Classic Italian pasta with eggs, cheese, and pancetta",
-            image: "/placeholder.jpg",
-          },
-          {
-            title: "Avocado Toast",
-            description: "Quick breakfast option with avocado and bread",
-            image: "/placeholder.jpg",
-          },
-        ]);
-      }
-      return null;
-    })
-    .then((result) => {
-      if (result) console.log("Sample recipes added to the database.");
-    })
-    .catch((err) =>
-      console.error("Error counting or seeding recipes:", err.message)
-    );
+  try {
+    const count = await Recipe.countDocuments({});
+    if (count === 0) {
+      console.log("Seeding sample recipes...");
+      await Recipe.create([
+        {
+          title: "Spaghetti Carbonara",
+          description: "Classic Italian pasta with eggs, cheese, and pancetta",
+          image: "/placeholder.jpg",
+        },
+        {
+          title: "Avocado Toast",
+          description: "Quick breakfast option with avocado and bread",
+          image: "/placeholder.jpg",
+        },
+      ]);
+      console.log("Sample recipes added to the database.");
+    }
+  } catch (err) {
+    console.error("Error counting or seeding recipes:", err.message);
+  }
 
   // Confirm Spoonacular API key presence
   if (!SPOONACULAR_API_KEY) {
     console.warn(
-      "Warning: SPOONACULAR_API_KEY not found in .env — Spoonacular API calls will fail."
+      " Warning: SPOONACULAR_API_KEY not found in .env — Spoonacular API calls will fail."
     );
   }
 
-  // Start server
+  // Start HTTP server
   const server = http.createServer(app);
 
+  // This allows external access from browser, Postman, frontend, etc.
   server.listen(PORT, "0.0.0.0", () =>
-    console.log(`Server running on port ${PORT}`)
+    console.log(`Server running on port ${PORT} and accessible externally`)
   );
 
   server.on("error", (err) => {
@@ -70,6 +64,4 @@ db.once("open", () => {
       throw err;
     }
   });
-
-  return null;
 });

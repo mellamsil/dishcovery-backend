@@ -1,34 +1,42 @@
 const mongoose = require("mongoose");
 const { MONGO_URI, NODE_ENV } = require("./config");
 
-function connectDB() {
-  const uri = MONGO_URI || "mongodb://127.0.0.1:27017/dishcovery";
+async function connectDB() {
+  try {
+    const uri = MONGO_URI;
 
-  console.log("Connecting to MongoDB...");
+    if (!uri) {
+      throw new Error("MONGO_URI is not defined in environment variables");
+    }
 
-  mongoose
-    .connect(uri)
-    .then(() => {
-      console.log("MongoDB connected:", uri);
-    })
-    .catch((error) => {
-      console.error("MongoDB connection error:", error.message);
-      process.exit(1);
+    console.log("Connecting to MongoDB...");
+
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
 
-  // Handle MongoDB connection events
-  mongoose.connection.on("disconnected", () => {
-    console.warn("MongoDB disconnected");
-  });
+    console.log(
+      `MongoDB connected successfully (${NODE_ENV || "development"})`
+    );
 
-  mongoose.connection.on("reconnected", () => {
-    console.log("MongoDB reconnected");
-  });
-
-  if (NODE_ENV !== "test") {
-    mongoose.connection.on("connected", () => {
-      console.log("Mongoose connection established.");
+    // Connection event handlers
+    mongoose.connection.on("disconnected", () => {
+      console.warn("MongoDB disconnected");
     });
+
+    mongoose.connection.on("reconnected", () => {
+      console.log("MongoDB reconnected");
+    });
+
+    if (NODE_ENV !== "test") {
+      mongoose.connection.on("connected", () => {
+        console.log("Mongoose connection established");
+      });
+    }
+  } catch (error) {
+    console.error("MongoDB connection error:", error.message);
+    process.exit(1);
   }
 }
 

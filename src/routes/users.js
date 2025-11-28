@@ -1,18 +1,28 @@
 const express = require("express");
 
 const router = express.Router();
+
 const auth = require("../middlewares/auth");
-const usersController = require("../controllers/users");
+const {
+  getCurrentUser,
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+} = require("../controllers/usersController");
 
-router.get("/me", auth, usersController.getCurrentUser);
-router.get("/", auth, usersController.getAllUsers);
-router.get("/:id", auth, usersController.getUserById);
-router.post("/", usersController.createUser);
-router.put("/:id", auth, usersController.updateUser);
+// Add this empty line before starting route definitions
 
-// Add this to handle /users/me using the same updateUser function
-router.put("/me", auth, usersController.updateUser);
+router.get("/me", auth, getCurrentUser);
+router.get("/", auth, getAllUsers);
+router.get("/:id", auth, getUserById);
 
-router.delete("/:id", auth, usersController.deleteUser);
+router.post("/", createUser);
+
+router.put("/:id", auth, updateUser);
+router.put("/me", auth, updateUser);
+
+router.delete("/:id", auth, deleteUser);
 
 module.exports = router;

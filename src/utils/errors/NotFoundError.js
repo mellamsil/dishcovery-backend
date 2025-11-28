@@ -1,8 +1,9 @@
-class NotFoundError extends Error {
-  constructor(message) {
-    super(message || "Resource not found");
+const AppError = require("./AppError");
+
+class NotFoundError extends AppError {
+  constructor(message = "Resource not found") {
+    super(message, 404);
     this.name = "NotFoundError";
-    this.statusCode = 404;
   }
 }
 

@@ -3,7 +3,7 @@ const { UnauthorizedError } = require("../utils/errors");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_default_secret";
 
-async function auth(req, res, next) {
+function auth(req, res, next) {
   try {
     const header = req.headers.authorization;
 
@@ -13,15 +13,16 @@ async function auth(req, res, next) {
       );
     }
 
-    const token = header.slice(7).trim();
+    const token = header.replace("Bearer ", "").trim();
     const decoded = jwt.verify(token, JWT_SECRET);
 
     if (!decoded || !decoded.id) {
       return next(new UnauthorizedError("Invalid token"));
     }
 
-    req.user = { id: decoded.id };
-    return next();
+    // Standardize on _id for consistency with Mongoose models
+    req.user = { _id: decoded.id };
+    next();
   } catch (err) {
     return next(new UnauthorizedError("Invalid token"));
   }

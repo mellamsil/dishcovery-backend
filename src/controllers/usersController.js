@@ -1,12 +1,16 @@
 const bcrypt = require("bcryptjs");
+// const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+
 const {
-  NotFoundError,
-  ConflictError,
   BadRequestError,
   UnauthorizedError,
+  NotFoundError,
+  ConflictError,
+  // ForbiddenError,
 } = require("../utils/errors");
 
+// const { JWT_SECRET = "dev-secret" } = process.env;
 const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
 
 // Helper to build full avatar URL
@@ -27,10 +31,10 @@ function attachFullAvatarUrl(user) {
 // GET CURRENT USER
 exports.getCurrentUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user || user.isDeleted)
+    const user = await User.findById(req.user._id).select("-password");
+    if (!user || user.isDeleted) {
       return next(new NotFoundError("User not found"));
-
+    }
     return res.json(attachFullAvatarUrl(user));
   } catch (err) {
     return next(err);
@@ -78,13 +82,22 @@ exports.createUser = async (req, res, next) => {
       preferences,
     } = req.body;
 
+    if (!email || !password || !name) {
+      return next(
+        new BadRequestError("Name, email, and password are required")
+      );
+    }
+
     const existing = await User.findOne({ email });
     if (existing) return next(new ConflictError("Email already in use"));
+
+    // Hash password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
-      password,
+      password: hashedPassword,
       avatar,
       favoriteCuisine,
       dietaryPreferences,
@@ -104,7 +117,8 @@ exports.createUser = async (req, res, next) => {
 // Update user
 exports.updateUser = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // FIXED HERE
+
     const { name, email, avatar, passwordUpdate } = req.body;
 
     const user = await User.findOne({ _id: userId, isDeleted: { $ne: true } });
@@ -113,12 +127,14 @@ exports.updateUser = async (req, res, next) => {
     if (name) user.name = name.trim();
     if (avatar) user.avatar = avatar.trim();
 
+    // Secure email update
     if (email && email.trim() !== user.email) {
       const exists = await User.findOne({ email: email.trim() });
       if (exists) return next(new ConflictError("Email already in use"));
       user.email = email.trim();
     }
 
+    // Secure password update handling
     if (passwordUpdate) {
       const { currentPassword, newPassword } = passwordUpdate;
       if (!currentPassword || !newPassword) {
@@ -144,7 +160,7 @@ exports.updateUser = async (req, res, next) => {
   }
 };
 
-// Delete user (Soft delete)
+// Soft-delete user
 exports.deleteUser = async (req, res, next) => {
   try {
     const user = await User.findOneAndUpdate(

@@ -144,6 +144,7 @@ module.exports = {
   validateSignin,
   validateCreateItem,
   validateCreateRecipe,
+  validateRecipe: validateCreateRecipe,
   validateItemId,
   validateAuthHeader,
   validateQuery,

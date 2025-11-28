@@ -1,8 +1,9 @@
-class InternalServerError extends Error {
-  constructor(message) {
-    super(message || "Internal server error");
+const AppError = require("./AppError");
+
+class InternalServerError extends AppError {
+  constructor(message = "Internal server error") {
+    super(message, 500);
     this.name = "InternalServerError";
-    this.statusCode = 500;
   }
 }
 

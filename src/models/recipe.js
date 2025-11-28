@@ -4,11 +4,16 @@ const recipeSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
-    ingredients: { type: [String], default: [] },
-    instructions: { type: String, default: "" },
+    ingredients: { type: String, required: true }, // stored as string for simplicity
+    instructions: { type: String, required: true },
+    notes: { type: String, default: "" },
     cuisine: { type: String, default: "" },
-    author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    image: { type: String },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    imageUrl: { type: String, default: "" },
   },
   {
     timestamps: true,

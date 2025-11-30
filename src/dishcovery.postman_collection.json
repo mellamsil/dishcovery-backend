@@ -1,0 +1,181 @@
+{
+  "info": {
+    "_postman_id": "dishcovery-backend",
+    "name": "Dishcovery Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Signup",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"avatar\": \"\",\n  \"favoriteCuisine\": \"Italian\",\n  \"dietaryPreferences\": [\"Vegetarian\"],\n  \"preferences\": {}\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/auth/signup",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["auth", "signup"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth - Signin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/auth/signin",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["auth", "signin"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Users - Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:5000/users/me",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Users - Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"avatar\": \"\",\n  \"passwordUpdate\": { \"currentPassword\": \"password123\", \"newPassword\": \"newpass123\" }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/users/me",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["users", "me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Recipes - Get All Spoonacular",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:5000/recipes?q=chicken",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["recipes"],
+          "query": [{ "key": "q", "value": "chicken" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Recipes - Create User Recipe",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Test Recipe\",\n  \"description\": \"Test description\",\n  \"image\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/recipes",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["recipes"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Recipes - Get Saved Recipes",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "http://localhost:5000/recipes/saved",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["recipes", "saved"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Items - Create Item",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Test Item\",\n  \"description\": \"Item description\",\n  \"imageUrl\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/items",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["items"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cookbooks - Add Item",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Cookbook Item\",\n  \"description\": \"Some notes\",\n  \"instructions\": \"Do this\",\n  \"notes\": \"Extra info\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/cookbooks",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["cookbooks"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [{ "key": "JWT_TOKEN", "value": "" }]
+}
